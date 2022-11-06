@@ -1,6 +1,6 @@
 This folder includes simulation code for the manuscript titled "Sample size considerations for assessing treatment effect heterogeneity in randomized trials with heterogeneous intracluster correlations and variances"
 Authors: Guangyu Tong*, Monica Taljaard, Fan Li
-This folder includes five file with the following functions:
+This folder includes five files with the following functions:
  1. simulation_functions_irgt.r: Sample size procedure, data generating process and simulation code for designing heterogeneous treatment effect(HTE) based individually randomized group treatment trials (IRGTs).
  2. simulation_functions_crt.r: Sample size procedure, data generating process and simulation code for designing heterogeneous treatment effect(HTE) based cluster randomized trials (CRTs).
  3. simulation_run_irgt.r: Sample run for the simulation of HTE-based IRGT.
