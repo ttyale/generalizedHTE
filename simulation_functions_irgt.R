@@ -2,7 +2,6 @@
 ##################################################################
 ##### Functions to calculate power and sample size for IRGT ######
 ##################################################################
-
 #Power calculation for IRGT HTE
 power_irgt<- function(eff, rhoy1, rhoy0, varx, vary1, vary0, m1, m0, n1, n0){
   alpha=0.05
@@ -119,6 +118,133 @@ ss_irgt<-function(eff=0.5){
 #choose effect size of 0.35
 #ss<-ss_irgt(eff=0.35)
 
+
+#######################################################################
+##### Simulation code to test the sample size procedure for IRGT ######
+#######################################################################
+
+#Data generating process
+datagen_irgt<-function(eff=0.25, rhoy1, rhoy0, m1, m0, n1, n0){
+  #Fixed parameters
+  alpha = 0.05  #type-1 error
+  beta = 0.20   #type-2 errpr
+  #p=p           #rough treatment proportion
+  vary1 = 1     #variance of Y condition on X in 1st arm
+  vary0 = 2     #variance of Y condition on X in 2nd arm
+  varx =  1     #continuous covariate variance/mean is zero
+  
+  b1=0          #intercept
+  b2=1.0       #treatment effect
+  b3=0.5        #covariate effect
+  b4=eff        #interaction effect to be powered
+  
+  #total sample size
+  N1 <- n1*m1
+  N0 <- n0*m0
+  N=N1+N0
+  
+  #generate id
+  pid <- seq(1:N)
+  
+  # Generate continuous covariate from normal
+  X<-rnorm(N,0,sqrt(varx))
+  
+  #randomize treatment assignment
+  W<-rep(0, N)
+  W[sample(1:N, size=N1)] <- 1
+  
+  #cluster id
+  cluster<-rep(NA,N)
+  cluster[which(W==1)]<-rep(1:n1,each=m1)
+  cluster[which(W==0)]<-rep((n1+1):(n1+n0),each=m0)
+  
+  #random-effect and residual variance
+  sigmac1 <- sqrt(rhoy1*vary1)  #cluster level sd; sigma= vary
+  sigmae1 <- sqrt((1-rhoy1)*vary1)  # individual level sd
+  sigmac0 <- sqrt(rhoy0*vary0)  #cluster level sd; sigma= vary
+  sigmae0 <- sqrt((1-rhoy0)*vary0)  # individual level sd
+  
+  #residual effect
+  rsd<-rep(NA,N)
+  rsd[which(W==1)]<-rnorm(n1*m1,0,sigmae1)
+  rsd[which(W==0)]<-rnorm(n0*m0,0,sigmae0)
+  
+  #random effects
+  re<-rep(NA,N)
+  re[which(W==1)]<-rep(rnorm(n1,0,sigmac1),each=m1)
+  re[which(W==0)]<-rep(rnorm(n0,0,sigmac0),each=m0)
+  
+  # with positive interaction  
+  Y <- b1+b2*W+b3*X+b4*X*W+rsd+re
+  # with null interaction
+  Y0 <- b1+b2*W+b3*X+rsd+re
+  
+  df <- data.frame(pid, cluster, W, X, Y, Y0)
+  
+  return(df)
+}
+
+#test code
+#df<-datagen_irgt(eff=0.25, rhoy1=0.05, rhoy0=0.00, m1=10, m0=1, n1=50, n0=20)
+
+
+#simulation code for irgt 
+sim_irgt<-function(eff, rhoy1, rhoy0, varx, vary1, vary0, m1, m0, p=0.5,nsim=1000){
+  
+  #Fixed parameters
+  #alpha = 0.05  #type-1 error
+  #beta = 0.20   #type-2 error
+  #p = p       #treatment proportion
+  
+  ss_irgt<-sample_size_irgt(eff=eff, rhoy1=rhoy1, rhoy0=rhoy0, varx=varx, vary1=vary1, vary0=vary0, m1=m1, m0=m0, p=p)
+  
+  
+  #Store results
+  output0=array(NA,dim=c(4,5,nsim))
+  output1=array(NA,dim=c(4,5,nsim))
+  n1=ss_irgt[1]
+  n0=ss_irgt[2]
+  require("nlme")
+  
+  for (s in 1:nsim){
+    #Generate data
+    df<-datagen_irgt(eff=eff, rhoy1=rhoy1, rhoy0=rhoy0, m1=m1, m0=m0, n1=n1, n0=n0)
+    
+    if (m0>1){
+      #Fit model
+      fit0<-try(lme(Y0 ~ W*X, random = list( cluster = pdDiag(~W)),weights = varIdent(form= ~ 1 | W), data=df),silent=T)
+      if(class(fit0)=="try-error"){ s<- s-1; break}
+      output0[,,s]<-summary(fit0)$tTable
+      
+      fit1<-try(lme(Y ~ W*X, random = list( cluster = pdDiag(~W)),weights = varIdent(form= ~ 1 | W), data=df),silent=T)
+      if(class(fit1)=="try-error"){ s<- s-1; break}
+      output1[,,s]<-summary(fit1)$tTable
+    }else{
+      #Fit model
+      fit0<-try(lme(Y0 ~ W*X, random = list( cluster = pdDiag(~0+W),
+                                             pid = pdDiag(~1)), weights = varIdent(form= ~ 1 | W), data=df),silent=T)
+      if(class(fit0)=="try-error"){ s<- s-1; break}
+      output0[,,s]<-summary(fit0)$tTable
+      
+      fit1<-try(lme(Y ~ W*X, random = list( cluster = pdDiag(~0+W),
+                                            pid = pdDiag(~1)) ,weights = varIdent(form= ~ 1 | W), data=df),silent=T)
+      if(class(fit1)=="try-error"){ s<- s-1; break}
+      output1[,,s]<-summary(fit1)$tTable
+    }
+  }  
+  
+  tp1<-round(mean(output0[4,5,]<0.05,na.rm=T) , 3)
+  empower<-round(mean(output1[4,5,]<0.05,na.rm=T) , 3)
+  
+  print(c(m1, m0, rhoy1, rhoy0, n1, n0, ss_irgt[7], tp1, empower))
+  return(data.frame("sample_size1"=ss_irgt[1], "sample_size0"=ss_irgt[2],
+                    "mean_cluster_size1"=m1, "mean_cluster_size0"=m0, 
+                    "total_individual1"=ss_irgt[4], "total_individual0"=ss_irgt[5], "true_power"=round(ss_irgt[7]*100,1),
+                    "type1_error"=round(tp1*100,1), "em_power"=round(empower*100,1)))
+}
+
+#test code
+#trial1<-sim(eff=0.25, rhoy1=0.01, rhoy0=0.05, varx=1, vary1=2, vary0=1, m1=5, m0=10, p=0.5,nsim=100)
 
 
 
