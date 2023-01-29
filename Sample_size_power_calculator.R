@@ -29,8 +29,9 @@ power_crt<- function(eff, rhoy1, rhoy0, rhox, varx, vary1, vary0, m1, m0, n1, n0
 ####   Sample size calculator for CRT based on HTE effect size  #####
 #####################################################################
 
-sample_size_crt<- function(eff, rhoy1, rhoy0, rhox, varx, vary1, vary0, m1, m0, p=0.5, equal=TRUE){ 
+sample_size_crt<- function(beta=0.2, eff, rhoy1, rhoy0, rhox, varx, vary1, vary0, m1, m0, p=0.5, equal=TRUE){
   
+  #beta: type II error rate, which is one minus power
   #eff: effect size
   #rhoy1: outcome ICC in trt arm
   #rhoy0: outcome ICC in ctr arm
@@ -41,7 +42,7 @@ sample_size_crt<- function(eff, rhoy1, rhoy0, rhox, varx, vary1, vary0, m1, m0, 
   #m0: cluster size in ctr arm
   #p: a design parameter that indicates (roughly) the sample size split between the two arms
   
-  beta=0.2
+  beta=beta
   alpha=0.05
   #optimal sample size allocation
   #p1<-(1+sqrt((vary0*m1*(1-rhoy0)*(1+(m0-1)*rhoy0)*(1+(m1-2)*rhoy1))/(vary1*m0*(1-rhoy1)*(1+(m1-1)*rhoy1)*(1+(m0-2)*rhoy0))))^(-1)
@@ -64,25 +65,25 @@ sample_size_crt<- function(eff, rhoy1, rhoy0, rhox, varx, vary1, vary0, m1, m0, 
   pwy<-power_crt(eff=eff, rhoy1=rhoy1, rhoy0=rhoy0, rhox=rhox, varx=varx, vary1=vary1, vary0=vary0, m1=m1, m0=m0, n1=ny[1], n0=ny[2])
   pwz<-power_crt(eff=eff, rhoy1=rhoy1, rhoy0=rhoy0, rhox=rhox, varx=varx, vary1=vary1, vary0=vary0, m1=m1, m0=m0, n1=nz[1], n0=nz[2])
   
-  if (pwx<0.8 & pwy<0.8) {
+  if (pwx<(1-beta) & pwy<(1-beta)) {
     n1=nz[1]
     n0=nz[2]
     emp=pwz
   }
   
-  if (pwx>0.8 & pwy<0.8){
+  if (pwx>(1-beta) & pwy<(1-beta)){
     n1=nx[1]
     n0=nx[2]
     emp=pwx
   }
   
-  if (pwx<0.8 & pwy>0.8){
+  if (pwx<(1-beta) & pwy>(1-beta)){
     n1=ny[1]
     n0=ny[2]
     emp=pwy
   }
   
-  if (pwx>0.8 & pwy>0.8){
+  if (pwx>(1-beta) & pwy>(1-beta)){
     if (pwx<pwy){
       n1=nx[1]
       n0=nx[2]
@@ -142,8 +143,9 @@ power_irgt<- function(eff, rhoy1, rhoy0, varx, vary1, vary0, m1, m0, n1, n0){
 ######################################################################
 ####   Sample size calculator for IRGT based on HTE effect size  #####
 ######################################################################
-sample_size_irgt<- function(eff, rhoy1, rhoy0, varx, vary1, vary0, m1, m0, p=0.5){ 
+sample_size_irgt<- function(beta= 0.2, eff, rhoy1, rhoy0, varx, vary1, vary0, m1, m0, p=0.5){ 
   
+  #beta: type II error rate, which is one minus power
   #eff: effect size
   #rhoy1: outcome ICC in trt arm
   #rhoy0: outcome ICC in ctr arm
@@ -153,7 +155,6 @@ sample_size_irgt<- function(eff, rhoy1, rhoy0, varx, vary1, vary0, m1, m0, p=0.5
   #m1: cluster size in trt arm
   #m0: cluster size in ctr arm
   #p: a design parameter that indicates (roughly) the sample size split between the two arms
-  beta=0.2
   alpha=0.05
   #optimal sample size allocation
   #p1<-(1+sqrt((vary0*m1*(1-rhoy0)*(1+(m0-1)*rhoy0)*(1+(m1-2)*rhoy1))/(vary1*m0*(1-rhoy1)*(1+(m1-1)*rhoy1)*(1+(m0-2)*rhoy0))))^(-1)
@@ -176,25 +177,25 @@ sample_size_irgt<- function(eff, rhoy1, rhoy0, varx, vary1, vary0, m1, m0, p=0.5
   pwy<-power_irgt(eff=eff, rhoy1=rhoy1, rhoy0=rhoy0, varx=varx, vary1=vary1, vary0=vary0, m1=m1, m0=m0, n1=ny[1], n0=ny[2])
   pwz<-power_irgt(eff=eff, rhoy1=rhoy1, rhoy0=rhoy0, varx=varx, vary1=vary1, vary0=vary0, m1=m1, m0=m0, n1=nz[1], n0=nz[2])
   
-  if (pwx<0.8 & pwy<0.8) {
+  if (pwx<(1-beta) & pwy<(1-beta)) {
     n1=nz[1]
     n0=nz[2]
     emp=pwz
   }
   
-  if (pwx>0.8 & pwy<0.8){
+  if (pwx>(1-beta) & pwy<(1-beta)){
     n1=nx[1]
     n0=nx[2]
     emp=pwx
   }
   
-  if (pwx<0.8 & pwy>0.8){
+  if (pwx<(1-beta) & pwy>(1-beta)){
     n1=ny[1]
     n0=ny[2]
     emp=pwy
   }
   
-  if (pwx>0.8 & pwy>0.8){
+  if (pwx>(1-beta) & pwy>(1-beta)){
     if (pwx<pwy){
       n1=nx[1]
       n0=nx[2]
