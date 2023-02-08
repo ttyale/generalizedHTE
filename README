@@ -7,3 +7,4 @@ This folder includes five files with the following functions:
  4. simulation_run_crt.r: Sample run for the simulation of HTE-based CRT.
  5. simulation_run_irgt_pnd.r: Sample run for the simulation of HTE-based IRGT with partially nested design.
  6. Sample_size_power_calculator.r: Sample size and power calcualtion functions for CRT and IRGT based on heterogeneous treatment effect.
+ 7. simulation_functions_90.r: simulation functions with flexible power choice.
